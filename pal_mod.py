@@ -1,5 +1,5 @@
 import math
-from PIL import Image
+import cv2
 import struct
 
 F_CHROMA = 4433618.75
@@ -21,7 +21,7 @@ EQ_LONG = 27.3
 SYNC_LVL = 0.0
 BLANK_LVL = 0.285
 WHITE_LVL = 1.0
-BLACK_LVL = 0.3
+BLACK_LVL = 0.339
 BURST_AMP = 0.1425
 COLOR_GAIN = 1.0
 
@@ -111,7 +111,7 @@ def write_frame(image):
             while timer < estimated_time:
                 if timer >= pixel_timer:
                     pixel_y = get_pixel_y(line, fields_line)
-                    r, g, b = image.getpixel((pixel_x, pixel_y))
+                    b, g, r = image[pixel_y, pixel_x]
                     r /= 255.0
                     g /= 255.0
                     b /= 255.0
@@ -143,11 +143,17 @@ def write_output_file(output_filename):
         f.write(packed_samples)
 
 def main():
-    input_filename = "C:/Users/Igor/Documents/big_webka.png"
-    image = Image.open(input_filename).convert('RGB')
+    video_path = "C:/Users/Igor/Videos/peak.mp4"
+    frames_amount = 10
 
-    write_frame(image)
-    write_frame(image)
+    video_capture = cv2.VideoCapture(video_path)
+    for _ in range (frames_amount):
+        is_there_next_frame, frame = video_capture.read()
+        if is_there_next_frame:
+            write_frame(frame)
+        else:
+            break
+    video_capture.release()
 
     output_filename = "C:/Users/Igor/Documents/pal/pal.bin"
     write_output_file(output_filename)
