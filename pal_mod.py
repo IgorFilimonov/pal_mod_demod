@@ -1,6 +1,7 @@
 import math
 import cv2
 import struct
+import sys
 
 F_CHROMA = 4433618.75
 SAMPLE_RATE = 12000000.0
@@ -142,20 +143,43 @@ def write_output_file(output_filename):
     with open(output_filename, "wb") as f:
         f.write(packed_samples)
 
+def parse_args():
+    if 3 > len(sys.argv) or len(sys.argv) > 5:
+        print("Usage: <input_filename> <output_filename> [optional: sample_rate, frames_amount]")
+        exit()
+
+    global SAMPLE_RATE
+    video_path = ""
+    output_filename = ""
+    frames_amount = 0
+    if len(sys.argv) >= 3:
+        video_path = sys.argv[1]
+        output_filename = sys.argv[2]
+        if len(sys.argv) >= 4:
+            SAMPLE_RATE = int(sys.argv[3])
+            if len(sys.argv) >= 5:
+                frames_amount = int(sys.argv[4])
+    return video_path, output_filename, frames_amount
+
 def main():
-    video_path = "C:/Users/Igor/Videos/peak.mp4"
-    frames_amount = 10
+    video_path, output_filename, frames_amount = parse_args()
 
     video_capture = cv2.VideoCapture(video_path)
-    for _ in range (frames_amount):
+    if not video_capture.isOpened():
+        print(f"Error: Could not open the video")
+        return
+
+    is_there_next_frame = True
+    frames_count = 0
+    while is_there_next_frame:
         is_there_next_frame, frame = video_capture.read()
         if is_there_next_frame:
             write_frame(frame)
-        else:
-            break
+            frames_count += 1
+            if frames_count == frames_amount:
+                break
     video_capture.release()
 
-    output_filename = "C:/Users/Igor/Documents/pal/pal.bin"
     write_output_file(output_filename)
 
 if __name__ == "__main__":
