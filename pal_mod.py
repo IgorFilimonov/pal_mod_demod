@@ -4,7 +4,7 @@ import struct
 import sys
 
 F_CHROMA = 4433618.75
-SAMPLE_RATE = 12000000.0
+SAMPLE_RATE = 16000000.0
 T_SAMPLE = 1000000.0 / SAMPLE_RATE
 LINE_TIME = 64.0
 BLANKING = 12.0
@@ -112,7 +112,10 @@ def write_frame(image):
             while timer < estimated_time:
                 if timer >= pixel_timer:
                     pixel_y = get_pixel_y(line, fields_line)
-                    b, g, r = image[pixel_y, pixel_x]
+                    try:
+                        b, g, r = image[pixel_y, pixel_x]
+                    except IndexError:
+                        b, g, r = 0, 0, 0
                     r /= 255.0
                     g /= 255.0
                     b /= 255.0
@@ -145,7 +148,7 @@ def write_output_file(output_filename):
 
 def parse_args():
     if 3 > len(sys.argv) or len(sys.argv) > 5:
-        print("Usage: <input_filename> <output_filename> [optional: sample_rate, frames_amount]")
+        print("Usage: <input_filename> <output_filename> [sample_rate [frames_amount]]")
         exit()
 
     global SAMPLE_RATE
@@ -161,9 +164,8 @@ def parse_args():
                 frames_amount = int(sys.argv[4])
     return video_path, output_filename, frames_amount
 
-def main():
-    video_path, output_filename, frames_amount = parse_args()
-
+def modulate(video_path, output_filename, frames_amount):
+    global sample_buffer
     video_capture = cv2.VideoCapture(video_path)
     if not video_capture.isOpened():
         print(f"Error: Could not open the video")
@@ -181,6 +183,20 @@ def main():
     video_capture.release()
 
     write_output_file(output_filename)
+    reset()
+
+def reset():
+    global sample_buffer, timer, estimated_time, burst_phase, carrier_sign, frame_num
+    sample_buffer = []
+    timer = 0.0
+    estimated_time = 0.0
+    burst_phase = -math.pi * 3.0 / 4.0
+    carrier_sign = -1.0
+    frame_num = 0
+
+def main():
+    video_path, output_filename, frames_amount = parse_args()
+    modulate(video_path, output_filename, frames_amount)
 
 if __name__ == "__main__":
     main()

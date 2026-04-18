@@ -1,25 +1,20 @@
-import struct
 import numpy as np
 from OpenGL.GL import *
 import glfw
+from utils import read_bin
+import sys
 
-INVERT_VIDEO = True
-LEVEL_BLACK = 0.3
-SAMPLE_RATE = 9000000
+INVERT_VIDEO = False
+LEVEL_BLACK = 0.1
+SAMPLE_RATE = 16000000
 LINES_NUMBER = 625
 FPS = 25
-HSYNC = True
-VSYNC = True
-LEVEL_SYNC = 0.2
+HSYNC = False
+VSYNC = False
+LEVEL_SYNC = 0.45
 BLACK_LINES_NUMBER = 49
 FIRST_VISIBLE_LINE = 23
 SYNC_LINES_NUMBER = 3
-
-def read_bin(path):
-    with open(path, 'rb') as f:
-        content = f.read()
-        samples = struct.iter_unpack('f', content)
-    return samples
 
 class ATVScreen:
     def __init__(self, samples_handler):
@@ -132,7 +127,7 @@ class ATVSamplesHandler:
         next_sample_exists = True
         while next_sample_exists:
             try:
-                sample = next(self.samples_iterator)[0]
+                sample = next(self.samples_iterator)
             except StopIteration:
                 next_sample_exists = False
             else:
@@ -236,13 +231,34 @@ class ATVSamplesHandler:
         else:
             return False
 
+def parse_args():
+    if 3 > len(sys.argv) or len(sys.argv) > 7:
+        print("Usage: <input_filename> [sample_rate] [hsync vsync [level_sync [invert_video]]]")
+        exit()
 
-def main():
-    #samples_iterator = read_bin('C:/Users/Igor/Documents/pal/palpalpal14132243197342482536.bin')
-    samples_iterator = read_bin('C:/Users/Igor/Documents/pal/habr.bin')
+    global SAMPLE_RATE, HSYNC, VSYNC, LEVEL_SYNC, INVERT_VIDEO
+    input_filename = ""
+    if len(sys.argv) >= 3:
+        input_filename = sys.argv[1]
+        SAMPLE_RATE = int(sys.argv[2])
+        if len(sys.argv) >= 5:
+            HSYNC = bool(sys.argv[3])
+            VSYNC = bool(sys.argv[4])
+            if len(sys.argv) >= 6:
+                LEVEL_SYNC = float(sys.argv[5])
+                if len(sys.argv) >= 7:
+                    INVERT_VIDEO = bool(sys.argv[6])
+    return input_filename
+
+def demodulate(input_filename):
+    samples_iterator = read_bin(input_filename)
     atv_samples_handler = ATVSamplesHandler(samples_iterator)
     atv_screen = ATVScreen(atv_samples_handler)
     atv_screen.start()
+
+def main():
+    input_filename = parse_args()
+    demodulate(input_filename)
 
 if __name__ == "__main__":
     main()
